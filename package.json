@@ -1,0 +1,24 @@
+{
+    "private": true,
+    "main": "Distribution/action.js",
+    "scripts": {
+      "build": "tsc -b && yarn test:clean && npx ncc build Distribution/action.js --out release",
+      "build:ci": "tsc -b && yarn lint",
+      "test": "mocha",
+      "test:clean": "rimraf Distribution/**/for_*",
+      "lint": "eslint --quiet --ext .ts ./",
+      "lint:fix": "eslint --quiet --ext .ts ./ --fix",
+      "ci": "yarn build:ci && yarn test && yarn test:clean && npx ncc build Distribution/action.js --out release"
+    },
+    "devDependencies": {
+      "@woksin/typescript.build": "^6.0.10",
+      "@woksin/typescript.testing": "^6.0.10",
+      "@vercel/ncc": "^0.36.1",
+      "rimraf": "5.0.1"
+    },
+    "dependencies": {
+      "@actions/core": "1.10.0",
+      "@woksin/github-actions.shared.logging": "1.1.3"
+    }
+  }
+  

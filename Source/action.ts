@@ -1,58 +1,66 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
-const analyzer = require('@semantic-release/commit-analyzer');
 import semanticRelease, { Result } from 'semantic-release';
-const commitAnalyzer = require('@semantic-release/commit-analyzer');
 
 const logger = new Logger();
+const branch: string = github.context.payload.pull_request!.head.ref;
 
 run();
 export async function run() {
     try {
         const token = core.getInput('token', {required: true});
-        const {owner, repo} = github.context.repo;
-        logger.info('Getting octokit');
-        const client = github.getOctokit(token, {owner, repo});
-
-
-        logger.info('Getting PR number');
-        const prNumber = await getPrNumber();
-        logger.info('Getting commits');
-        // const x = await client.rest.pulls.listCommits({owner, repo, pull_number: prNumber, per_page: 100});
-        // const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
-
-        require('debug').enable('semantic-release:*');
-        logger.info(JSON.stringify(process.env, undefined, 2));
-        logger.info(JSON.stringify(github.context, undefined, 2));
-        delete process.env.GITHUB_ACTIONS;
-        delete process.env.GITHUB_EVENT_NAME;
-        process.env.APPVEYOR_REPO_BRANCH = github.context.payload.pull_request!.head.ref;
-        process.env.APPVEYOR = 'true';
+        const tagFormat = core.getInput('tag-format', {required: false});
+        setEnvironmentHacks();
         const result = await semanticRelease({
-            ci: false, debug: true, dryRun: true,
-            branch: github.context.payload.pull_request!.head.ref || github.context.payload.pull_request!.base.ref,
-            branches: ['*', '**', github.context.ref],
+            ci: false, dryRun: true,
+            branch,
+            tagFormat: tagFormat ? tagFormat : undefined,
+            branches: ['*', branch, github.context.ref],
             plugins: ['@semantic-release/commit-analyzer']}, {});
-        // logger.info('Analyzing commits');
-        // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);
-        logger.info(JSON.stringify(result, undefined, 2));
         if (result) {
-
             const releaseType = result.nextRelease.type;
-            logger.info(releaseType);
-            const label = releaseType;
-            await client.rest.issues.addLabels({
-                issue_number: prNumber,
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                labels: label.startsWith('pre') ? [] : [label]
-            });
+            logger.info(`Found release type: ${releaseType}`);
+            await setReleaseLabel(token, releaseType);
         }
-        // outputResult(releaseType);
+        outputResult(result);
     } catch (error: any) {
         fail(error);
     }
+}
+
+async function setReleaseLabel(token: string, releaseType: string) {
+    if (releaseType.startsWith('pre')) {
+        return;
+    }
+    const {owner, repo} = github.context.repo;
+    const client = github.getOctokit(token, {owner, repo});
+    const prNumber = await getPrNumber();
+    for (const label of ['patch', 'minor', 'major']) {
+        await client.rest.issues.removeLabel({
+            issue_number: prNumber,
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            name: label
+        });
+    }
+    await client.rest.issues.addLabels({
+        issue_number: prNumber,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        labels: [releaseType]
+    });
+}
+
+/**
+ * By looking at how semantic-release I determined that I could trick the system to get me the semantic version by
+ * tricking it a bit.
+ */
+function setEnvironmentHacks() {
+    delete process.env.GITHUB_ACTIONS;
+    delete process.env.GITHUB_EVENT_NAME;
+    process.env.APPVEYOR = 'true';
+    process.env.APPVEYOR_REPO_BRANCH = branch;
 }
 
 async function getPrNumber() {
@@ -70,15 +78,9 @@ function outputResult(releaseType: Result) {
     }
     core.setOutput('is-release', true);
     core.setOutput('release-type', releaseType.nextRelease.type);
+    core.setOutput('release-name', releaseType.nextRelease.name);
+    core.setOutput('release-notes', releaseType.nextRelease.notes);
 }
-// function outputResult(releaseType: string | null) {
-//     if (!releaseType) {
-//         core.setOutput('is-release', false);
-//         return;
-//     }
-//     core.setOutput('is-release', true);
-//     core.setOutput('release-type', releaseType);
-// }
 
 function fail(error: Error) {
     logger.error(error.message);

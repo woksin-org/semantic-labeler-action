@@ -20,10 +20,12 @@ export async function run() {
         const x = await client.rest.pulls.listCommits({owner, repo, pull_number: prNumber, per_page: 100});
         const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
 
-        const result = await semanticRelease({ci: true, dryRun: true, plugins: ['@semantic-release/commit-analyzer']}, {});
-        logger.info('Analyzing commits');
+        const result = await semanticRelease({ci: false, dryRun: true, plugins: ['@semantic-release/commit-analyzer']}, {});
+        // logger.info('Analyzing commits');
         // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);
+        logger.info(JSON.stringify(result, undefined, 2));
         if (result) {
+
             const releaseType = result.nextRelease.type;
             logger.info(releaseType);
             const label = releaseType;
@@ -53,7 +55,6 @@ function outputResult(releaseType: Result) {
         core.setOutput('is-release', false);
         return;
     }
-    logger.info(JSON.stringify(releaseType, undefined, 2));
     core.setOutput('is-release', true);
     core.setOutput('release-type', releaseType.nextRelease.type);
 }

@@ -22,3 +22,5 @@ jobs:
       name: Build local action
     - name: Semantic Labeler
       uses: ./
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}

@@ -20,6 +20,7 @@ export async function run() {
         // const x = await client.rest.pulls.listCommits({owner, repo, pull_number: prNumber, per_page: 100});
         // const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
 
+        require('debug').enable('semantic-release:*');
         const result = await semanticRelease({ci: false, debug: true, dryRun: true, branches: ['*', '**'], plugins: ['@semantic-release/commit-analyzer']}, {});
         // logger.info('Analyzing commits');
         // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);

@@ -8,7 +8,8 @@ jobs:
   build:
     name: Continuous Integration
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v3
     # Need to build this action to run it bellow
@@ -36,4 +37,3 @@ jobs:
       with:
         version: ${{ steps.context.outputs.new-version }}
         body: ${{ steps.context.outputs.pr-body }}
-        token: ${{ secrets.BUILD_PAT }}

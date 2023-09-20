@@ -18,7 +18,6 @@ outputs:
   release-notes:
     description: The release notes
   
-  
 runs:
   using: 'node16'
   main: 'release/index.js'

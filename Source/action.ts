@@ -14,6 +14,8 @@ export async function run() {
         const {owner, repo} = github.context.repo;
         logger.info('Getting octokit');
         const client = github.getOctokit(token, {owner, repo});
+
+
         logger.info('Getting PR number');
         const prNumber = await getPrNumber();
         logger.info('Getting commits');
@@ -23,7 +25,11 @@ export async function run() {
         require('debug').enable('semantic-release:*');
         delete process.env.GITHUB_ACTIONS;
         delete process.env.GITHUB_EVENT_NAME;
-        const result = await semanticRelease({ci: false, debug: true, dryRun: true, branches: ['*', '**', github.context.ref], plugins: ['@semantic-release/commit-analyzer']}, {});
+        const result = await semanticRelease({
+            ci: false, debug: true, dryRun: true,
+            branch: github.context.payload.pull_request!.head.ref || github.context.payload.pull_request!.base.ref,
+            branches: ['*', '**', github.context.ref],
+            plugins: ['@semantic-release/commit-analyzer']}, {});
         // logger.info('Analyzing commits');
         // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);
         logger.info(JSON.stringify(result, undefined, 2));

@@ -11,13 +11,17 @@ run();
 export async function run() {
     try {
         const token = core.getInput('token', {required: true});
+        const {owner, repo} = github.context.repo;
+        const client = github.getOctokit(token, {owner, repo});
+        const prNumber = await getPrNumber();
+        const x = await client.rest.pulls.listCommits({owner, repo, pull_number: prNumber, per_page: 100})
+        const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
+
         // const result = await semanticRelease({ci: true, dryRun: true, plugins: ['@semantic-release/commit-analyzer']});
-        const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {} as any);
+        const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);
         if (releaseType) {
             logger.info(releaseType);
             const label = releaseType;
-            const client = github.getOctokit(token, {});
-            const prNumber = await getPrNumber();
             await client.rest.issues.addLabels({
                 issue_number: prNumber,
                 owner: github.context.repo.owner,

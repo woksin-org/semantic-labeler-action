@@ -1,13 +1,19 @@
-name: 'The Action Name'
-description: 'The action description'
+name: 'Semantic Labeler'
+description: Labels the PR using semantic release conventional commits
 inputs:
-  someInput:
-    description: Description of the input
-    required: true
+  token:
+    description: Github authentication token
+    default: github.token
 
 outputs:
-  output:
-    description: Description of the output
+  is-release:
+    description: Whether there is a release or not
+  release-type:
+    description: The release type
+  channel:
+    description: The release channel
+  release-notes:
+    description: The release notes
   
 runs:
   using: 'node16'

@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import pluginRetry from '@octokit/plugin-retry';
 import { Logger } from '@woksin/github-actions.shared.logging';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 
@@ -17,7 +16,7 @@ export async function run() {
         if (releaseType) {
             logger.info(releaseType);
             const label = releaseType;
-            const client = github.getOctokit(token, {}, pluginRetry.retry);
+            const client = github.getOctokit(token, {});
             const prNumber = await getPrNumber();
             await client.rest.issues.addLabels({
                 issue_number: prNumber,

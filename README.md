@@ -1,5 +1,5 @@
-# GitHub Action - Action Name Here
-This GitHub action ...
+# GitHub Action - Semantic Labeler
+This GitHub action labels your pull request based on conventional commits using [semantic-release](https://github.com/semantic-release/semantic-release)
 
 ### Pre requisites
 Create a workflow `.yml` file in your `.github/workflows` directory. An [example workflow](#example-workflow) is available below.

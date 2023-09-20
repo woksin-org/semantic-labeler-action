@@ -21,6 +21,8 @@ export async function run() {
         // const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
 
         require('debug').enable('semantic-release:*');
+        delete process.env.GITHUB_ACTIONS;
+        delete process.env.GITHUB_EVENT_NAME;
         const result = await semanticRelease({ci: false, debug: true, dryRun: true, branches: ['*', '**', github.context.ref], plugins: ['@semantic-release/commit-analyzer']}, {});
         // logger.info('Analyzing commits');
         // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);

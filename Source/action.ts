@@ -24,6 +24,7 @@ export async function run() {
 
         require('debug').enable('semantic-release:*');
         logger.info(JSON.stringify(process.env, undefined, 2));
+        logger.info(JSON.stringify(github.context, undefined, 2));
         // delete process.env.GITHUB_ACTIONS;
         delete process.env.GITHUB_EVENT_NAME;
         const result = await semanticRelease({

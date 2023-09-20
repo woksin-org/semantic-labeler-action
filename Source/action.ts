@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
-import { analyzeCommits } from '@semantic-release/commit-analyzer';
+const analyzeCommits = require('@semantic-release/commit-analyzer');
 
 // const commitAnalyzer = require('@semantic-release/commit-analyzer');
 

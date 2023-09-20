@@ -3,7 +3,7 @@ import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
 const analyzer = require('@semantic-release/commit-analyzer');
 import semanticRelease, { Result } from 'semantic-release';
-// const commitAnalyzer = require('@semantic-release/commit-analyzer');
+const commitAnalyzer = require('@semantic-release/commit-analyzer');
 
 const logger = new Logger();
 
@@ -20,7 +20,7 @@ export async function run() {
         const x = await client.rest.pulls.listCommits({owner, repo, pull_number: prNumber, per_page: 100});
         const commits = x.data.map(_ => ({message: _.commit.message, hash: _.sha}));
 
-        const result = await semanticRelease({ci: false, dryRun: true, plugins: ['@semantic-release/commit-analyzer']}, {});
+        const result = await semanticRelease({ci: false, dryRun: true, branches: {name: '*'}, plugins: ['@semantic-release/commit-analyzer']}, {});
         // logger.info('Analyzing commits');
         // const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {commits} as any);
         logger.info(JSON.stringify(result, undefined, 2));

@@ -37,12 +37,17 @@ async function setReleaseLabel(token: string, releaseType: string) {
     const client = github.getOctokit(token, {owner, repo});
     const prNumber = await getPrNumber();
     for (const label of ['patch', 'minor', 'major']) {
-        await client.rest.issues.removeLabel({
-            issue_number: prNumber,
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            name: label
-        });
+        try {
+            logger.info(`Trying to remove '${label}' label`);
+            await client.rest.issues.removeLabel({
+                issue_number: prNumber,
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                name: label
+            });
+        } catch(err) {
+            logger.warning(`Failed: ${err}`);
+        }
     }
     await client.rest.issues.addLabels({
         issue_number: prNumber,

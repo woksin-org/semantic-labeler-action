@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
-const analyzeCommits = require('@semantic-release/commit-analyzer');
+const analyzer = require('@semantic-release/commit-analyzer');
 
 // const commitAnalyzer = require('@semantic-release/commit-analyzer');
 
@@ -12,7 +12,7 @@ export async function run() {
     try {
         const token = core.getInput('token', {required: true});
         // const result = await semanticRelease({ci: true, dryRun: true, plugins: ['@semantic-release/commit-analyzer']});
-        const releaseType = analyzeCommits({preset: 'angular'} as any, {} as any);
+        const releaseType = analyzer.analyzeCommits({preset: 'angular'} as any, {} as any);
         if (releaseType) {
             logger.info(releaseType);
             const label = releaseType;

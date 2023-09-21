@@ -5,13 +5,14 @@ description: |
   because that is what the GitHub JavaScript actions are limited to currently
 inputs:
   token:
-    description: Github authentication token
-    default: github.token
+    description: Github access token
+    required: true
+    default: ${{github.token}}
   tag-format:
     description: The semantic release tag format. See documentation https://github.com/semantic-release/semantic-release/blob/v19.0.5/docs/usage/configuration.md#tagformat
     default: v${version}
   debug:
-    description: Whether to enable debug logging from semantic-release. 'true', 'false'
+    description: Whether to enable debug logging from semantic-release. The value here is a boolean
     default: 'false'
   commit-preset:
     description: The preset to use for the git commit analyzer. See https://github.com/semantic-release/commit-analyzer/tree/v9.0.2#options for presets

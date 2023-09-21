@@ -137,6 +137,7 @@ function outputResult(releaseType: Result) {
         return;
     }
     const release = releaseType.nextRelease;
+    logger.info(JSON.stringify(release, undefined, 2));
     core.setOutput(outputs.isRelease, true);
     core.setOutput(outputs.releaseType, release.type);
     core.setOutput(outputs.releaseName, release.name);

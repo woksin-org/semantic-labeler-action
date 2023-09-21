@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import { OctokitResponse } from '@octokit/types';
 import { Logger } from '@woksin/github-actions.shared.logging';
 import semanticRelease, { Result, NextRelease } from 'semantic-release';
 import { RELEASE_TYPES, ReleaseType } from 'semver';
@@ -33,7 +34,6 @@ export async function run() {
         const commitConfig = core.getInput(inputs.commitConfig, {required: false});
 
         setEnvironmentHacks();
-
         if (debug) {
             require('debug').enable('semantic-release:*');
         }
@@ -72,12 +72,16 @@ async function setReleaseLabel(token: string, release: NextRelease) {
         owner,
         repo});
 
-    const releaseLabels = labels.data.filter(label => RELEASE_TYPES.includes(label.name as ReleaseType));
-    const containsCurrentRelease = releaseLabels.map(_ => _.name).includes(release.type);
+    const releaseLabels = labels.data.map(_ => _.name).filter(label => RELEASE_TYPES.includes(label as ReleaseType));
+    const containsCurrentRelease = releaseLabels.includes(release.type);
+    if (containsCurrentRelease && releaseLabels.length === 1) {
+        return;
+    }
+
     if (releaseLabels.length > 0) {
-        logger.info(`Pull request already has release labels: ${releaseLabels.join(', ')}`);
+        logger.warning(`Pull request already has release labels: ${releaseLabels.join(', ')}`);
         logger.warning(`Removing all release labels except ${release.type}`);
-        for (const label of releaseLabels.map(_ => _.name)) {
+        for (const label of releaseLabels) {
             try {
                 if (label === release.type) {
                     continue;

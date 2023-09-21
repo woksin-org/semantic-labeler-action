@@ -1,11 +1,26 @@
 name: 'Semantic Labeler'
-description: Labels the PR using semantic release conventional commits
+description: |
+  Labels the PR using semantic release conventional commits.
+  Note that this action is currently limited to use a version of semantic-release that is compatible with node v16
+  because that is what the GitHub JavaScript actions are limited to currently
 inputs:
   token:
     description: Github authentication token
     default: github.token
   tag-format:
-    description: The semantic release tag format
+    description: The semantic release tag format. See documentation https://github.com/semantic-release/semantic-release/blob/v19.0.5/docs/usage/configuration.md#tagformat
+    default: v${version}
+  debug:
+    description: Whether to enable debug logging from semantic-release. 'true', 'false'
+    default: 'false'
+  commit-preset:
+    description: The preset to use for the git commit analyzer. See https://github.com/semantic-release/commit-analyzer/tree/v9.0.2#options for presets
+    required: false
+  commit-release-rules:
+    description: The relative path to the release rules configuration. See documentation https://github.com/semantic-release/commit-analyzer/tree/v9.0.2#options
+    required: false
+  commit-config:
+    description: The relative path to the requirable npm package with a custom conventional-changelog preset. See documentation https://github.com/semantic-release/commit-analyzer/tree/v9.0.2#options
     required: false
 
 outputs:

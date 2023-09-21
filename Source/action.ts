@@ -1,7 +1,22 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
-import semanticRelease, { Result } from 'semantic-release';
+import semanticRelease, { ReleaseType, Result, Config, NextRelease } from 'semantic-release';
+
+const inputs = {
+    token: 'token',
+    tagFormat: 'tag-format',
+    debug: 'debug',
+    commitPreset: 'commit-preset',
+    commitReleaseRules: 'commit-release-rules',
+    commitConfig: 'commit-config'
+};
+const outputs = {
+    isRelease: 'is-release',
+    releaseType: 'release-type',
+    releaseNotes: 'release-notes',
+    releaseName: 'release-name'
+};
 
 const logger = new Logger();
 const branch: string = github.context.payload.pull_request!.head.ref;
@@ -9,19 +24,33 @@ const branch: string = github.context.payload.pull_request!.head.ref;
 run();
 export async function run() {
     try {
-        const token = core.getInput('token', {required: true});
-        const tagFormat = core.getInput('tag-format', {required: false});
+        const token = core.getInput(inputs.token, {required: true});
+        const debug = core.getBooleanInput(inputs.debug, {required: true});
+        const tagFormat = core.getInput(inputs.tagFormat, {required: true});
+        const commitPreset = core.getInput(inputs.commitPreset, {required: false});
+        const commitReleaseRules = core.getInput(inputs.commitReleaseRules, {required: false});
+        const commitConfig = core.getInput(inputs.commitConfig, {required: false});
+
         setEnvironmentHacks();
+
+        if (debug) {
+            require('debug').enable('semantic-release:*');
+        }
+
         const result = await semanticRelease({
             ci: false, dryRun: true,
             branch,
             tagFormat: tagFormat ? tagFormat : undefined,
             branches: ['*', branch, github.context.ref],
-            plugins: ['@semantic-release/commit-analyzer']}, {});
+            plugins: ['@semantic-release/commit-analyzer'],
+            preset: commitPreset ? commitPreset : undefined,
+            releaseRules: commitReleaseRules ? commitReleaseRules : undefined,
+            config: commitConfig ? commitConfig : undefined
+        }, {});
         if (result) {
-            const releaseType = result.nextRelease.type;
-            logger.info(`Found release type: ${releaseType}`);
-            await setReleaseLabel(token, releaseType);
+            const release = result.nextRelease;
+            logger.info(`Found release type: ${release.type}`);
+            await setReleaseLabel(token, release);
         }
         outputResult(result);
     } catch (error: any) {
@@ -29,31 +58,32 @@ export async function run() {
     }
 }
 
-async function setReleaseLabel(token: string, releaseType: string) {
-    if (releaseType.startsWith('pre')) {
+async function setReleaseLabel(token: string, release: NextRelease) {
+    if (release.type.startsWith('pre')) {
         return;
     }
+    const prNumber = await getPrNumber();
     const {owner, repo} = github.context.repo;
     const client = github.getOctokit(token, {owner, repo});
-    const prNumber = await getPrNumber();
     for (const label of ['patch', 'minor', 'major']) {
         try {
             logger.info(`Trying to remove '${label}' label`);
             await client.rest.issues.removeLabel({
                 issue_number: prNumber,
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
+                owner,
+                repo,
                 name: label
             });
         } catch(err) {
-            logger.warning(`Failed: ${err}`);
+            logger.warning(`${label} was not present`);
         }
     }
+
     await client.rest.issues.addLabels({
         issue_number: prNumber,
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        labels: [releaseType]
+        owner,
+        repo,
+        labels: [release.type]
     });
 }
 
@@ -64,7 +94,9 @@ async function setReleaseLabel(token: string, releaseType: string) {
 function setEnvironmentHacks() {
     delete process.env.GITHUB_ACTIONS;
     delete process.env.GITHUB_EVENT_NAME;
+    // Using APPVEYOR here is purely coincidental.
     process.env.APPVEYOR = 'true';
+    // This is the important part, to set the branch correctly to the head branch.
     process.env.APPVEYOR_REPO_BRANCH = branch;
 }
 
@@ -78,13 +110,14 @@ async function getPrNumber() {
 
 function outputResult(releaseType: Result) {
     if (!releaseType) {
-        core.setOutput('is-release', false);
+        core.setOutput(outputs.isRelease, false);
         return;
     }
-    core.setOutput('is-release', true);
-    core.setOutput('release-type', releaseType.nextRelease.type);
-    core.setOutput('release-name', releaseType.nextRelease.name);
-    core.setOutput('release-notes', releaseType.nextRelease.notes);
+    const release = releaseType.nextRelease;
+    core.setOutput(outputs.isRelease, true);
+    core.setOutput(outputs.releaseType, release.type);
+    core.setOutput(outputs.releaseName, release.name);
+    core.setOutput(outputs.releaseNotes, release.notes);
 }
 
 function fail(error: Error) {

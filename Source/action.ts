@@ -1,7 +1,8 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Logger } from '@woksin/github-actions.shared.logging';
-import semanticRelease, { ReleaseType, Result, Config, NextRelease } from 'semantic-release';
+import semanticRelease, { Result, NextRelease } from 'semantic-release';
+import { RELEASE_TYPES, ReleaseType } from 'semver';
 
 const inputs = {
     token: 'token',
@@ -65,26 +66,44 @@ async function setReleaseLabel(token: string, release: NextRelease) {
     const prNumber = await getPrNumber();
     const {owner, repo} = github.context.repo;
     const client = github.getOctokit(token, {owner, repo});
-    for (const label of ['patch', 'minor', 'major']) {
-        try {
-            logger.info(`Trying to remove '${label}' label`);
-            await client.rest.issues.removeLabel({
-                issue_number: prNumber,
-                owner,
-                repo,
-                name: label
-            });
-        } catch(err) {
-            logger.warning(`${label} was not present`);
+
+    const labels = await client.rest.issues.listLabelsOnIssue({
+        issue_number: prNumber,
+        owner,
+        repo});
+
+    const releaseLabels = labels.data.filter(label => RELEASE_TYPES.includes(label.name as ReleaseType));
+    const containsCurrentRelease = releaseLabels.map(_ => _.name).includes(release.type);
+    if (releaseLabels.length > 0) {
+        logger.info(`Pull request already has release labels: ${releaseLabels.join(', ')}`);
+        logger.warning(`Removing all release labels except ${release.type}`);
+        for (const label of releaseLabels.map(_ => _.name)) {
+            try {
+                if (label === release.type) {
+                    continue;
+                };
+                logger.info(`Trying to remove '${label}' label`);
+                await client.rest.issues.removeLabel({
+                    issue_number: prNumber,
+                    owner,
+                    repo,
+                    name: label
+                });
+            } catch(err) {
+                logger.warning(`Failed to remove '${label}' label: ${err}`);
+            }
         }
     }
 
-    await client.rest.issues.addLabels({
-        issue_number: prNumber,
-        owner,
-        repo,
-        labels: [release.type]
-    });
+    if (!containsCurrentRelease) {
+        logger.info(`Adding current release label '${release.type}'`);
+        await client.rest.issues.addLabels({
+            issue_number: prNumber,
+            owner,
+            repo,
+            labels: [release.type]
+        });
+    }
 }
 
 /**
